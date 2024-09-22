@@ -1,23 +1,43 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Header from "./Header";
 import { CheckValidateData } from "../utils/validate";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../utils/firebase";
-import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
+import { useNavigate } from "react-router-dom"; // For navigation
 
 const Login = () => {
-  const navigate = useNavigate();
   const [isSignIn, setIsSignIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [loading, setLoading] = useState(true); // Loading state for auth check
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const email = useRef(null);
   const password = useRef(null);
   const name = useRef(null);
 
+  useEffect(() => {
+    // Check if the user is already authenticated
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // If user is logged in, redirect to the browse page
+        navigate("/browse");
+      } else {
+        // If user is not logged in, stop loading and show the login page
+        setLoading(false);
+      }
+    });
+
+    // Cleanup the subscription when the component unmounts
+    return () => unsubscribe();
+  }, [navigate]);
+
   const handleCheck = () => {
-    const emailValue = email.current.value;
-    const passwordValue = password.current.value;
-    const nameValue = name.current.value;
+    const emailValue = email.current?.value || "";
+    const passwordValue = password.current?.value || "";
+    const nameValue = name.current?.value || "";
 
     console.log("Email:", emailValue);
     console.log("Password:", passwordValue);
@@ -34,12 +54,10 @@ const Login = () => {
         .then((userCredential) => {
           const user = userCredential.user;
           console.log("User signed in:", user);
-          navigate("/browse");
+          navigate("/browse"); // Redirect to browse page after login
         })
         .catch((error) => {
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          handleFirebaseErrors(errorCode, errorMessage);
+          handleFirebaseErrors(error.code, error.message);
         });
     } else {
       // For signing up new users
@@ -50,25 +68,20 @@ const Login = () => {
             displayName: nameValue,
           })
             .then(() => {
-              // Profile updated!
-              navigate("/browse");
+              const user = auth.currentUser;
+              dispatch(addUser({ uid: user.uid, email: user.email, displayName: user.displayName }));
+              navigate("/browse"); // Redirect to browse page after signup
             })
             .catch((error) => {
-              // An error occurred
               console.error("Profile update error:", error);
             });
-          console.log("User signed up:", user);
-         
         })
         .catch((error) => {
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          handleFirebaseErrors(errorCode, errorMessage);
+          handleFirebaseErrors(error.code, error.message);
         });
     }
   };
 
-  // A helper function to handle Firebase errors
   const handleFirebaseErrors = (errorCode, errorMessage) => {
     if (errorCode === "auth/email-already-in-use") {
       setErrorMessage("Email is already in use.");
@@ -90,6 +103,11 @@ const Login = () => {
   const handleSignInForm = () => {
     setIsSignIn(!isSignIn);
   };
+
+  if (loading) {
+    // Show a loading spinner while checking authentication
+    return <div>Loading...</div>;
+  }
 
   return (
     <div>
