@@ -63,7 +63,7 @@ function Header() {
 }, [dispatch]);
 
   return (
-    <div className="absolute bg-gradient-to-b from-black px-4 py-4 mx-1 w-screen flex justify-between">
+    <div className="absolute z-10 bg-gradient-to-b from-black px-4 py-4 mx-1 w-screen flex justify-between">
       <img
         className="w-44"
         src="https://cdn.cookielaw.org/logos/dd6b162f-1a32-456a-9cfe-897231c7763c/4345ea78-053c-46d2-b11e-09adaef973dc/Netflix_Logo_PMS.png"
@@ -83,7 +83,7 @@ function Header() {
           {dropdownOpen && (
             <div
               ref={dropdownRef} // Ref for the dropdown menu
-              className="drop-down"
+              className="drop-down border border-gray-600 rounded-lg absolute bg-black text-white"
               style={{ top: "100%", right: 0 }} // Position below the profile icon
             >
               <p className="px-4 py-2">Signed in as: {user?.displayName}</p>
